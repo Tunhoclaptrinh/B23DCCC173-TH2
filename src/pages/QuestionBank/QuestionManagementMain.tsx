@@ -15,22 +15,22 @@ const QuestionBankSystem = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [modalContent, setModalContent] = useState<React.ReactNode>(null);
 
-    const { courses, questions, testPapers } = useModel('questionbank');
+    // const { courses, questions, testPapers } = useModel('questionbank');
 
-    const handleAddButtonClick = () => {
-        switch(activeTab) {
-            case 'courses':
-                setModalContent(<CourseManagement isModal={true} onClose={() => setModalVisible(false)} />);
-                break;
-            case 'questions':
-                setModalContent(<QuestionManagement isModal={true} onClose={() => setModalVisible(false)} />);
-                break;
-            case 'test-papers':
-                setModalContent(<TestPaperGenerator isModal={true} onClose={() => setModalVisible(false)} />);
-                break;
-        }
-        setModalVisible(true);
-    };
+    // const handleAddButtonClick = () => {
+    //     switch(activeTab) {
+    //         case 'courses':
+    //             setModalContent(<CourseManagement isModal={true} onClose={() => setModalVisible(false)} />);
+    //             break;
+    //         case 'questions':
+    //             setModalContent(<QuestionManagement isModal={true} onClose={() => setModalVisible(false)} />);
+    //             break;
+    //         case 'test-papers':
+    //             setModalContent(<TestPaperGenerator isModal={true} onClose={() => setModalVisible(false)} />);
+    //             break;
+    //     }
+    //     setModalVisible(true);
+    // };
 
     return (
         <div style={{ padding: 20 }}>
