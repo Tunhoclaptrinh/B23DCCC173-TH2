@@ -2,61 +2,75 @@ import { useState } from 'react';
 
 export default () => {
     const [gameHistory, setGameHistory] = useState<any[]>([]);
+
     const choices = ['Rock', 'Paper', 'Scissors'];
 
+    // Kiểm tra ai thắng ai thua
     const determineWinner = (player: string, computer: string): string => {
-        if (player === computer) return 'Draw';
-
-        const winConditions = {
-            'Rock': ['Scissors'],
-            'Paper': ['Rock'], 
-            'Scissors': ['Paper']
-        };
-
-        return winConditions[player as keyof typeof winConditions]?.includes(computer) 
-            ? 'Win' 
-            : 'Lose';
+        if (player === computer) {
+            return 'Draw';
+        } else {
+            if (player === 'Rock' && computer === 'Scissors') {
+                return 'Win';
+            } else if (player === 'Paper' && computer === 'Rock') {
+                return 'Win';
+            } else if (player === 'Scissors' && computer === 'Paper') {
+                return 'Win';
+            } else {
+                return 'Lose';
+            }
+        }
     };
 
+    // Lấy lịch sử game
     const getGameHistory = () => {
-        const storedHistory = localStorage.getItem('gameHistory');
-        if (storedHistory) {
-            const parsedHistory = JSON.parse(storedHistory);
+        let historyFromStorage = localStorage.getItem('gameHistory');
+        if (historyFromStorage !== null) {
+            let parsedHistory = JSON.parse(historyFromStorage);
             setGameHistory(parsedHistory);
             return parsedHistory;
+        } else {
+            return [];
         }
-        return [];
     };
 
+    // Chơi một ván
     const playGame = (playerChoice: string) => {
-        const computerChoice = choices[Math.floor(Math.random() * choices.length)];
-        const result = determineWinner(playerChoice, computerChoice);
+        let randomIndex = Math.floor(Math.random() * choices.length);
+        let computerChoice = choices[randomIndex];
 
-        const newGameRecord = {
-            playerChoice,
-            computerChoice,
-            result,
+        let result = determineWinner(playerChoice, computerChoice);
+
+        let newGame = {
+            playerChoice: playerChoice,
+            computerChoice: computerChoice,
+            result: result,
             timestamp: new Date().toLocaleString()
         };
 
-        const updatedHistory = [newGameRecord, ...gameHistory].slice(0, 10);
-        localStorage.setItem('gameHistory', JSON.stringify(updatedHistory));
-        setGameHistory(updatedHistory);
+        let newHistory = [newGame, ...gameHistory];
 
-        return { playerChoice, computerChoice, result };
+        if (newHistory.length > 10) {
+            newHistory = newHistory.slice(0, 10);
+        }
+
+        localStorage.setItem('gameHistory', JSON.stringify(newHistory));
+        setGameHistory(newHistory);
+
+        return newGame;
     };
 
+    // Xóa hết lịch sử
     const clearHistory = () => {
         localStorage.removeItem('gameHistory');
         setGameHistory([]);
     };
 
     return {
-        gameHistory,
-        setGameHistory,
-        getGameHistory,
-        playGame,
-        clearHistory,
-        choices
+        gameHistory: gameHistory,
+        getGameHistory: getGameHistory,
+        playGame: playGame,
+        clearHistory: clearHistory,
+        choices: choices
     };
 };

@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Button, Tabs, Modal } from 'antd';
 import { useModel } from 'umi';
 import CourseManagement from '../../components/QuestionBank/CourseManagement';
-import QuestionManagement from './QuestionManagement';
+import QuestionManagement from '../../components/QuestionBank/QuestionManagement/QuestionManagement';
 import TestPaperGenerator from '../../components/QuestionBank/TestPaperGenerator';
-import QuestionSearch from '../QuestionSearch';
+import QuestionSearch from '../../components/QuestionBank/QuestionSearch';
 import QuestionForm from '../../components/Form/CourseForm';
 
 

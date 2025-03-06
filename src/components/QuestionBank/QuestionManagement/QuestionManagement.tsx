@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, Button, Modal, Popconfirm } from 'antd';
 import { useModel } from 'umi';
 import { v4 as uuidv4 } from 'uuid';
-import QuestionForm from '../../components/Form/QuestionForm';
+import QuestionForm from '../../Form/QuestionForm';
 
 const QuestionManagement: React.FC = () => {
     const { courses, questions, addQuestion, updateQuestion, deleteQuestion } = useModel('questionbank');
