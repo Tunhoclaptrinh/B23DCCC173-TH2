@@ -5,7 +5,7 @@ export interface Course {
     id: string;
     name: string;
     credits: number;
-    knowledgeAreas: string[];
+    knowledgeAreas: string[]; // lưu thành mảng các kiến thức
 }
 
 export interface Question {
@@ -66,6 +66,19 @@ export default () => {
         setQuestions(updatedQuestions);
         localStorage.setItem('questions', JSON.stringify(updatedQuestions));
     };
+    const deleteQuestion = (questionId: string) => {
+        const updatedQuestions = questions.filter(q => q.id !== questionId);
+        setQuestions(updatedQuestions);
+        localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+    };
+    const updateQuestion = (updatedQuestion: Question) => {
+        const updatedQuestions = questions.map(q => 
+            q.id === updatedQuestion.id ? updatedQuestion : q
+        );
+        setQuestions(updatedQuestions);
+        localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+    };
+    
 
     // Test Paper Generation
     const generateTestPaper = (
@@ -91,7 +104,8 @@ export default () => {
             const difficultyQuestions = courseQuestions.filter(q => q.difficultyLevel === difficulty);
             
             // Determine how many questions to select from each knowledge area
-            const totalKnowledgeAreaWeight = Object.values(knowledgeAreaDistribution).reduce((sum, val) => sum + val, 0);
+            const totalKnowledgeAreaWeight = Object.values(knowledgeAreaDistribution).reduce((sum, val) => sum + val, 0) || 1;
+
             
             // For each knowledge area
             for (const [knowledgeArea, weight] of Object.entries(knowledgeAreaDistribution)) {
@@ -147,7 +161,10 @@ export default () => {
         deleteCourse,
         updateCourse,
         addQuestion,
+        updateQuestion,
+        deleteQuestion, 
         generateTestPaper,
+        setTestPapers, // 🔥 Thêm dòng này để sửa lỗi
         searchQuestions
     };
 };

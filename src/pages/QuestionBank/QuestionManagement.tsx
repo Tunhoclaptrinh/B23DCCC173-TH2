@@ -1,48 +1,54 @@
-import React from 'react';
-import { Form, Input, Select, Button, Table } from 'antd';
+import React, { useState } from 'react';
+import { Table, Button, Modal, Popconfirm } from 'antd';
 import { useModel } from 'umi';
 import { v4 as uuidv4 } from 'uuid';
-import QuestionForm from '../../components/Form/CourseForm';
+import QuestionForm from '../../components/Form/QuestionForm';
 
-interface QuestionManagementProps {
-    isModal?: boolean;
-    onClose?: () => void;
-}
+const QuestionManagement: React.FC = () => {
+    const { courses, questions, addQuestion, updateQuestion, deleteQuestion } = useModel('questionbank');
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [editingQuestion, setEditingQuestion] = useState(null);
 
-const QuestionManagement: React.FC<QuestionManagementProps> = ({ isModal, onClose }) => {
-    const { courses, questions, addQuestion } = useModel('questionbank');
-    const [form] = Form.useForm();
+    const handleAdd = () => {
+        setEditingQuestion(null);
+        setIsModalVisible(true);
+    };
+
+    const handleEdit = (question: any) => {
+        setEditingQuestion(question);
+        setIsModalVisible(true);
+    };
+
+    const handleDelete = (questionId: string) => {
+        deleteQuestion(questionId);
+    };
 
     const handleSubmit = (values: any) => {
-        const newQuestion = {
-            id: uuidv4(),
-            courseId: values.courseId,
-            content: values.content,
-            difficultyLevel: values.difficultyLevel,
-            knowledgeArea: values.knowledgeArea
-        };
-
-
-        addQuestion(newQuestion);
-        form.resetFields();
-        
-        if (isModal && onClose) {
-            onClose();
+        if (editingQuestion) {
+            // Cập nhật câu hỏi
+            updateQuestion({ ...editingQuestion, ...values });
+        } else {
+            // Thêm câu hỏi mới
+            addQuestion({
+                id: uuidv4(),
+                ...values
+            });
         }
+        setIsModalVisible(false);
     };
 
     const columns = [
+        {
+            title: 'Content',
+            dataIndex: 'content',
+            key: 'content',
+        },
         {
             title: 'Course',
             dataIndex: 'courseId',
             key: 'courseId', 
             render: (courseId: string) => 
                 courses.find(c => c.id === courseId)?.name || courseId
-        },
-        {
-            title: 'Content',
-            dataIndex: 'content',
-            key: 'content',
         },
         {
             title: 'Difficulty',
@@ -53,67 +59,47 @@ const QuestionManagement: React.FC<QuestionManagementProps> = ({ isModal, onClos
             title: 'Knowledge Area',
             dataIndex: 'knowledgeArea',
             key: 'knowledgeArea',
-        }
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (_, record) => (
+                <>
+                    <Button type="link" onClick={() => handleEdit(record)}>Edit</Button>
+                    <Popconfirm
+                        title="Are you sure to delete this question?"
+                        onConfirm={() => handleDelete(record.id)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button type="link" danger>Delete</Button>
+                    </Popconfirm>
+                </>
+            ),
+        },
     ];
 
     return (
         <div>
-            <Form 
-                form={form}
-                layout="vertical" 
-                onFinish={handleSubmit}
-            >
-                <Form.Item 
-                    name="courseId" 
-                    label="Course" 
-                    rules={[{ required: true, message: 'Please select a course' }]}
-                >
-                    <Select placeholder="Select a course">
-                        {courses.map(course => (
-                            <Select.Option key={course.id} value={course.id}>
-                                {course.name}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </Form.Item>
-                <Form.Item 
-                    name="content" 
-                    label="Question Content" 
-                    rules={[{ required: true, message: 'Please input question content' }]}
-                >
-                    <Input.TextArea rows={4} />
-                </Form.Item>
-                <Form.Item 
-                    name="difficultyLevel" 
-                    label="Difficulty Level" 
-                    rules={[{ required: true, message: 'Please select difficulty level' }]}
-                >
-                    <Select>
-                        <Select.Option value="Easy">Easy</Select.Option>
-                        <Select.Option value="Medium">Medium</Select.Option>
-                        <Select.Option value="Hard">Hard</Select.Option>
-                        <Select.Option value="Very Hard">Very Hard</Select.Option>
-                    </Select>
-                </Form.Item>
-                <Form.Item 
-                    name="knowledgeArea" 
-                    label="Knowledge Area" 
-                    rules={[{ required: true, message: 'Please input knowledge area' }]}
-                >
-                    <Input />
-                </Form.Item>
-                <Form.Item>
-                    <Button type="primary" htmlType="submit">
-                        {isModal ? 'Add Question' : 'Save'}
-                    </Button>
-                </Form.Item>
-            </Form>
+            <Button type="primary" onClick={handleAdd} style={{ marginBottom: 16 }}>
+                Add Question
+            </Button>
 
-            <Table 
-                columns={columns} 
-                dataSource={questions} 
-                rowKey="id"
-            />
+            <Table columns={columns} dataSource={questions} rowKey="id" />
+
+            {/* Modal Form */}
+            <Modal
+                title={editingQuestion ? "Edit Question" : "Add Question"}
+                visible={isModalVisible}
+                footer={null}
+                onCancel={() => setIsModalVisible(false)}
+            >
+                <QuestionForm 
+                    onSubmit={handleSubmit} 
+                    courses={courses} 
+                    initialValues={editingQuestion} 
+                />
+            </Modal>
         </div>
     );
 };

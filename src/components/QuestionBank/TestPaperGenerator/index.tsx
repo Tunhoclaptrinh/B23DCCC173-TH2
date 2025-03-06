@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
-import { Form, Select, InputNumber, Button, Table, Alert, Modal } from 'antd';
+import { Form, Select, InputNumber, Button, Table, Modal } from 'antd';
 import { useModel } from 'umi';
 
-interface TestPaperGeneratorProps {
-    isModal?: boolean;
-    onClose?: () => void;
-}
-
-const TestPaperGenerator: React.FC<TestPaperGeneratorProps> = ({ isModal, onClose }) => {
-    const { courses, testPapers, generateTestPaper, questions } = useModel('questionbank');
+const TestPaperGenerator = () => {
+    const { courses, generateTestPaper, testPapers, setTestPapers } = useModel('questionbank');
     const [form] = Form.useForm();
-    const [generatedTestPaper, setGeneratedTestPaper] = useState<any>(null);
+    const [generatedTestPaper, setGeneratedTestPaper] = useState(null);
+    const [editingTestPaper, setEditingTestPaper] = useState(null); // Trạng thái sửa đề
 
-    const handleSubmit = (values: any) => {
+    const handleSubmit = (values) => {
         try {
             const difficultyDistribution = {
                 'Easy': values.easyQuestions || 0,
@@ -22,162 +18,143 @@ const TestPaperGenerator: React.FC<TestPaperGeneratorProps> = ({ isModal, onClos
             };
 
             const knowledgeAreaDistribution = {};
-            (values.knowledgeAreas || []).forEach((area: string) => {
-                knowledgeAreaDistribution[area] = 
-                    values[`${area}_count`] || 0;
+            (values.knowledgeAreas || []).forEach(area => {
+                knowledgeAreaDistribution[area] = values[`${area}_count`] || 0;
             });
 
-            const testPaper = generateTestPaper(
-                values.courseId, 
-                difficultyDistribution, 
-                knowledgeAreaDistribution
-            );
+            const testPaper = generateTestPaper(values.courseId, difficultyDistribution, knowledgeAreaDistribution);
+            
+            if (!testPaper || !testPaper.id) {
+                throw new Error("Failed to generate a valid test paper.");
+            }
 
             setGeneratedTestPaper(testPaper);
         } catch (error) {
-            Modal.error({
-                title: 'Test Generation Error',
-                content: error.message
-            });
+            console.error("Error generating test paper:", error);
+            Modal.error({ title: 'Error', content: error.message });
         }
     };
 
-    // Get knowledge areas for selected course
-    const getKnowledgeAreas = (courseId: string) => {
-        const course = courses.find(c => c.id === courseId);
-        return course ? course.knowledgeAreas : [];
+    // Xóa đề thi
+    const deleteTestPaper = (testPaperId) => {
+        Modal.confirm({
+            title: 'Confirm Deletion',
+            content: 'Are you sure you want to delete this test paper?',
+            onOk: () => {
+                setTestPapers(prevTestPapers => prevTestPapers.filter(tp => tp.id !== testPaperId));
+                localStorage.setItem('testPapers', JSON.stringify(testPapers.filter(tp => tp.id !== testPaperId)));
+            }
+        });
     };
 
-    const testPaperColumns = [
-        {
-            title: 'Question',
-            dataIndex: 'content',
-            key: 'content',
-        },
-        {
-            title: 'Difficulty',
-            dataIndex: 'difficultyLevel',
-            key: 'difficultyLevel',
-        },
-        {
-            title: 'Knowledge Area',
-            dataIndex: 'knowledgeArea',
-            key: 'knowledgeArea',
-        }
-    ];
-
-    const testHistoryColumns = [
-        {
-            title: 'Course',
-            dataIndex: 'courseName',
-            key: 'courseName',
-        },
-        {
-            title: 'Created At',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-        },
-        {
-            title: 'Number of Questions',
-            key: 'questionCount',
-            render: (record) => record.questions.length
-        }
-    ];
+    // Chỉnh sửa đề thi
+    const editTestPaper = (testPaper) => {
+        setEditingTestPaper(testPaper);
+        Modal.info({
+            title: 'Edit Test Paper',
+            content: (
+                <div>
+                    <p><strong>Course:</strong> {testPaper.courseName}</p>
+                    <p><strong>Created At:</strong> {testPaper.createdAt}</p>
+                    <p><strong>Total Questions:</strong> {testPaper.questions.length}</p>
+                    <Table 
+                        columns={[
+                            { title: 'Question ID', dataIndex: 'id', key: 'id' },
+                            { title: 'Content', dataIndex: 'content', key: 'content' },
+                            { title: 'Difficulty', dataIndex: 'difficultyLevel', key: 'difficultyLevel' },
+                            { title: 'Knowledge Area', dataIndex: 'knowledgeArea', key: 'knowledgeArea' }
+                        ]} 
+                        dataSource={testPaper.questions} 
+                        rowKey="id" 
+                    />
+                </div>
+            ),
+            onOk() {
+                setEditingTestPaper(null);
+            }
+        });
+    };
 
     return (
         <div>
-            <Form 
-                form={form}
-                layout="vertical" 
-                onFinish={handleSubmit}
-            >
-                <Form.Item 
-                    name="courseId" 
-                    label="Course" 
-                    rules={[{ required: true, message: 'Please select a course' }]}
-                >
+            <Form form={form} layout="vertical" onFinish={handleSubmit}>
+                <Form.Item name="courseId" label="Course" rules={[{ required: true }]}> 
                     <Select placeholder="Select a course">
                         {courses.map(course => (
-                            <Select.Option key={course.id} value={course.id}>
-                                {course.name}
-                            </Select.Option>
+                            <Select.Option key={course.id} value={course.id}>{course.name}</Select.Option>
                         ))}
                     </Select>
                 </Form.Item>
 
                 <Form.Item label="Questions by Difficulty">
-                    <Form.Item name="easyQuestions" noStyle>
-                        <InputNumber placeholder="Easy Questions" min={0} style={{ width: '25%', marginRight: 8 }} />
-                    </Form.Item>
-                    <Form.Item name="mediumQuestions" noStyle>
-                        <InputNumber placeholder="Medium Questions" min={0} style={{ width: '25%', marginRight: 8 }} />
-                    </Form.Item>
-                    <Form.Item name="hardQuestions" noStyle>
-                        <InputNumber placeholder="Hard Questions" min={0} style={{ width: '25%', marginRight: 8 }} />
-                    </Form.Item>
-                    <Form.Item name="veryHardQuestions" noStyle>
-                        <InputNumber placeholder="Very Hard Questions" min={0} style={{ width: '25%' }} />
-                    </Form.Item>
+                    <Form.Item name="easyQuestions" noStyle><InputNumber placeholder="Easy" min={0} /></Form.Item>
+                    <Form.Item name="mediumQuestions" noStyle><InputNumber placeholder="Medium" min={0} /></Form.Item>
+                    <Form.Item name="hardQuestions" noStyle><InputNumber placeholder="Hard" min={0} /></Form.Item>
+                    <Form.Item name="veryHardQuestions" noStyle><InputNumber placeholder="Very Hard" min={0} /></Form.Item>
                 </Form.Item>
 
-                <Form.Item 
-                    name="knowledgeAreas" 
-                    label="Knowledge Areas"
-                    dependencies={['courseId']}
-                >
-                    <Select 
-                        mode="multiple" 
-                        placeholder="Select knowledge areas"
-                        disabled={!form.getFieldValue('courseId')}
-                    >
-                        {form.getFieldValue('courseId') && 
-                            getKnowledgeAreas(form.getFieldValue('courseId')).map(area => (
-                                <Select.Option key={area} value={area}>
-                                    {area}
-                                </Select.Option>
-                            ))
-                        }
+                <Form.Item name="knowledgeAreas" label="Knowledge Areas">
+                    <Select mode="multiple" placeholder="Select areas">
+                        {courses.find(c => c.id === form.getFieldValue('courseId'))?.knowledgeAreas.map(area => (
+                            <Select.Option key={area} value={area}>{area}</Select.Option>
+                        ))}
                     </Select>
                 </Form.Item>
 
-                {form.getFieldValue('knowledgeAreas')?.map((area: string) => (
-                    <Form.Item 
-                        key={area} 
-                        name={`${area}_count`} 
-                        label={`${area} Questions`}
-                    >
-                        <InputNumber min={0} placeholder={`Number of questions for ${area}`} />
-                    </Form.Item>
-                ))}
-
-                <Form.Item>
-                    <Button type="primary" htmlType="submit">
-                        Generate Test Paper
-                    </Button>
-                </Form.Item>
+                <Form.Item><Button type="primary" htmlType="submit">Generate</Button></Form.Item>
             </Form>
 
+            {/* Hiển thị đề thi đã tạo */}
             {generatedTestPaper && (
-                <div style={{ marginTop: 16 }}>
+                <div>
                     <h2>Generated Test Paper</h2>
+                    <p><strong>Course:</strong> {generatedTestPaper.courseName}</p>
+                    <p><strong>Created At:</strong> {generatedTestPaper.createdAt}</p>
+                    <p><strong>Total Questions:</strong> {generatedTestPaper.questions.length}</p>
                     <Table 
-                        columns={testPaperColumns} 
+                        columns={[
+                            { title: 'Question ID', dataIndex: 'id', key: 'id' },
+                            { title: 'Content', dataIndex: 'content', key: 'content' },
+                            { title: 'Difficulty', dataIndex: 'difficultyLevel', key: 'difficultyLevel' },
+                            { title: 'Knowledge Area', dataIndex: 'knowledgeArea', key: 'knowledgeArea' }
+                        ]} 
                         dataSource={generatedTestPaper.questions} 
-                        rowKey="id"
+                        rowKey="id" 
                     />
                 </div>
             )}
 
-            <div style={{ marginTop: 16 }}>
-                <h2>Test Paper History</h2>
-                <Table 
-                    columns={testHistoryColumns} 
-                    dataSource={testPapers} 
-                    rowKey="id"
-                />
-            </div>
+            {/* Hiển thị lịch sử các đề thi đã tạo */}
+            <h2>Test Paper History</h2>
+            <Table
+                columns={[
+                    { title: 'Course', dataIndex: 'courseName', key: 'courseName' },
+                    { title: 'Created At', dataIndex: 'createdAt', key: 'createdAt' },
+                    { title: 'Total Questions', dataIndex: 'questions', key: 'questions', render: (questions) => questions.length },
+                    { title: 'Questions', key: 'questions_list', render: (_, record) => (
+                        <ul>
+                            {record.questions.slice(0, 5).map(q => (
+                                <li key={q.id}>{q.content} ({q.difficultyLevel})</li>
+                            ))}
+                            {record.questions.length > 5 && <li>...</li>}
+                        </ul>
+                    )},
+                    {
+                        title: 'Actions',
+                        key: 'actions',
+                        render: (_, record) => (
+                            <>
+                                <Button onClick={() => editTestPaper(record)} style={{ marginRight: 8 }}>Edit</Button>
+                                <Button danger onClick={() => deleteTestPaper(record.id)}>Delete</Button>
+                            </>
+                        )
+                    }
+                ]}
+                dataSource={testPapers}
+                rowKey="id"
+            />
         </div>
     );
 };
 
-export default TestPaperGenerator; 
+export default TestPaperGenerator;
