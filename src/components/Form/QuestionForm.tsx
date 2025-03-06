@@ -1,16 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Select, Button } from 'antd';
 import { Course } from '../../models/questionbank';
 
 interface QuestionFormProps {
     onSubmit: (values: any) => void;
-    courses: Course[];  // Thêm prop courses
+    courses: Course[];
     initialValues?: any;
     isModal?: boolean;
 }
 
 const QuestionForm: React.FC<QuestionFormProps> = ({ onSubmit, courses, initialValues, isModal }) => {
     const [form] = Form.useForm();
+    const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(initialValues?.courseId);
+
+    // Lấy danh sách knowledgeAreas dựa trên courseId đã chọn
+    const getKnowledgeAreas = () => {
+        if (!selectedCourseId) return [];
+        const selectedCourse = courses.find(course => course.id === selectedCourseId);
+        return selectedCourse ? selectedCourse.knowledgeAreas : [];
+    };
+
+    // Khi initialValues thay đổi (ví dụ: khi edit), cập nhật selectedCourseId
+    useEffect(() => {
+        if (initialValues?.courseId) {
+            setSelectedCourseId(initialValues.courseId);
+            form.setFieldsValue(initialValues); // Đảm bảo form được điền giá trị ban đầu
+        }
+    }, [initialValues, form]);
+
+    // Xử lý khi thay đổi khóa học
+    const handleCourseChange = (value: string) => {
+        setSelectedCourseId(value);
+        form.setFieldsValue({ knowledgeArea: undefined }); // Reset knowledgeArea khi đổi course
+    };
 
     return (
         <Form
@@ -24,7 +46,10 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ onSubmit, courses, initialV
                 label="Course" 
                 rules={[{ required: true, message: 'Please select a course' }]}
             >
-                <Select placeholder="Select a course">
+                <Select 
+                    placeholder="Select a course" 
+                    onChange={handleCourseChange}
+                >
                     {courses.map(course => (
                         <Select.Option key={course.id} value={course.id}>
                             {course.name}
@@ -46,7 +71,7 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ onSubmit, courses, initialV
                 label="Difficulty Level" 
                 rules={[{ required: true, message: 'Please select difficulty level' }]}
             >
-                <Select>
+                <Select placeholder="Select difficulty level">
                     <Select.Option value="Easy">Easy</Select.Option>
                     <Select.Option value="Medium">Medium</Select.Option>
                     <Select.Option value="Hard">Hard</Select.Option>
@@ -57,17 +82,18 @@ const QuestionForm: React.FC<QuestionFormProps> = ({ onSubmit, courses, initialV
             <Form.Item 
                 name="knowledgeArea" 
                 label="Knowledge Area" 
-                rules={[{ required: true, message: 'Please input knowledge area' }]}
+                rules={[{ required: true, message: 'Please select a knowledge area' }]}
             >
-                 <Select placeholder="Select a knowledge area">
-    {courses.flatMap(course =>
-        course.knowledgeAreas.map((area, index) => (
-            <Select.Option key={`${course.id}-${index}`} value={area}>
-                {area}
-            </Select.Option>
-        ))
-    )}
-</Select>
+                <Select 
+                    placeholder="Select a knowledge area"
+                    disabled={!selectedCourseId} // Vô hiệu hóa nếu chưa chọn khóa học
+                >
+                    {getKnowledgeAreas().map((area, index) => (
+                        <Select.Option key={index} value={area}>
+                            {area}
+                        </Select.Option>
+                    ))}
+                </Select>
             </Form.Item>
 
             <Form.Item>

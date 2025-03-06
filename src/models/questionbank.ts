@@ -1,3 +1,4 @@
+// 
 import { useState } from 'react';
 
 // Interfaces for type safety
@@ -79,6 +80,38 @@ export default () => {
         localStorage.setItem('questions', JSON.stringify(updatedQuestions));
     };
     
+    // Question Statistics - Add this missing function
+    const getQuestionStats = (courseId: string) => {
+        const courseQuestions = questions.filter(q => q.courseId === courseId);
+        
+        // Calculate difficulty distribution
+        const difficultyStats = {
+            'Easy': 0,
+            'Medium': 0,
+            'Hard': 0,
+            'Very Hard': 0
+        };
+        
+        // Calculate knowledge area distribution
+        const knowledgeAreaStats = {};
+        
+        courseQuestions.forEach(question => {
+            // Count by difficulty
+            difficultyStats[question.difficultyLevel]++;
+            
+            // Count by knowledge area
+            if (knowledgeAreaStats[question.knowledgeArea]) {
+                knowledgeAreaStats[question.knowledgeArea]++;
+            } else {
+                knowledgeAreaStats[question.knowledgeArea] = 1;
+            }
+        });
+        
+        return {
+            difficultyStats,
+            knowledgeAreaStats
+        };
+    };
 
     // Test Paper Generation
     const generateTestPaper = (
@@ -164,7 +197,8 @@ export default () => {
         updateQuestion,
         deleteQuestion, 
         generateTestPaper,
-        setTestPapers, // 🔥 Thêm dòng này để sửa lỗi
-        searchQuestions
+        setTestPapers,
+        searchQuestions,
+        getQuestionStats // Added this function to the return object
     };
 };

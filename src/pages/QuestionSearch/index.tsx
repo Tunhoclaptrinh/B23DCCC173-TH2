@@ -1,19 +1,32 @@
-import React, { useState } from 'react';
-import { Form, Select, Button, Table } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Form, Select, Button, Table, Input, Space, Row, Col } from 'antd';
 import { useModel } from 'umi';
 
 const QuestionSearch: React.FC = () => {
-    const { courses, questions, searchQuestions } = useModel('questionbank');
+    const { courses, questions } = useModel('questionbank'); 
     const [form] = Form.useForm();
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [filteredQuestions, setFilteredQuestions] = useState(questions);
+
+    useEffect(() => {
+        setFilteredQuestions(questions);
+    }, [questions]);
 
     const handleSearch = (values: any) => {
-        const results = searchQuestions(
-            values.courseId, 
-            values.difficultyLevel, 
-            values.knowledgeArea
+        const { courseId, difficultyLevel, knowledgeArea, searchContent } = values;
+
+        const results = questions.filter(question => 
+            (!courseId || question.courseId === courseId) &&
+            (!difficultyLevel || question.difficultyLevel === difficultyLevel) &&
+            (!knowledgeArea?.length || knowledgeArea.includes(question.knowledgeArea)) &&
+            (!searchContent || question.content.toLowerCase().includes(searchContent.toLowerCase()))
         );
-        setSearchResults(results);
+
+        setFilteredQuestions(results);
+    };
+
+    const handleReset = () => {
+        form.resetFields(); 
+        setFilteredQuestions(questions); 
     };
 
     const columns = [
@@ -45,57 +58,79 @@ const QuestionSearch: React.FC = () => {
         <div>
             <Form 
                 form={form}
-                layout="vertical" 
+                layout="vertical"
                 onFinish={handleSearch}
+                onValuesChange={() => handleSearch(form.getFieldsValue())} 
             >
-                <Form.Item name="courseId" label="Course">
-                    <Select placeholder="Select a course" allowClear>
-                        {courses.map(course => (
-                            <Select.Option key={course.id} value={course.id}>
-                                {course.name}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </Form.Item>
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <Form.Item name="searchContent" label="Search by Content">
+                            <Input placeholder="Enter keyword..." allowClear />
+                        </Form.Item>
+                    </Col>
 
-                <Form.Item name="difficultyLevel" label="Difficulty Level">
-                    <Select placeholder="Select difficulty level" allowClear>
-                        <Select.Option value="Easy">Easy</Select.Option>
-                        <Select.Option value="Medium">Medium</Select.Option>
-                        <Select.Option value="Hard">Hard</Select.Option>
-                        <Select.Option value="Very Hard">Very Hard</Select.Option>
-                    </Select>
-                </Form.Item>
+                    <Col span={8}>
+                        <Form.Item name="courseId" label="Course">
+                            <Select placeholder="Select a course" allowClear>
+                                {courses.map(course => (
+                                    <Select.Option key={course.id} value={course.id}>
+                                        {course.name}
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
 
-                <Form.Item name="knowledgeArea" label="Knowledge Area">
-                    <Select 
-                        placeholder="Select knowledge area" 
-                        allowClear
-                        mode="multiple"
-                    >
-                        {Array.from(new Set(questions.map(q => q.knowledgeArea))).map(area => (
-                            <Select.Option key={area} value={area}>
-                                {area}
-                            </Select.Option>
-                        ))}
-                    </Select>
-                </Form.Item>
+                    <Col span={8}>
+                        <Form.Item name="difficultyLevel" label="Difficulty Level">
+                            <Select placeholder="Select difficulty level" allowClear>
+                                <Select.Option value="Easy">Easy</Select.Option>
+                                <Select.Option value="Medium">Medium</Select.Option>
+                                <Select.Option value="Hard">Hard</Select.Option>
+                                <Select.Option value="Very Hard">Very Hard</Select.Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
 
-                <Form.Item>
-                    <Button type="primary" htmlType="submit">
-                        Search Questions
-                    </Button>
-                </Form.Item>
+                <Row gutter={16}>
+                    <Col span={8}>
+                        <Form.Item name="knowledgeArea" label="Knowledge Area">
+                            <Select 
+                                placeholder="Select knowledge area" 
+                                allowClear
+                                mode="multiple"
+                            >
+                                {Array.from(new Set(questions.map(q => q.knowledgeArea))).map(area => (
+                                    <Select.Option key={area} value={area}>
+                                        {area}
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+
+                    <Col span={8} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <Space>
+                            <Button type="primary" htmlType="submit">
+                                Search
+                            </Button>
+                            <Button onClick={handleReset}>
+                                Reset
+                            </Button>
+                        </Space>
+                    </Col>
+                </Row>
             </Form>
 
             <Table 
                 columns={columns} 
-                dataSource={searchResults} 
+                dataSource={filteredQuestions} 
                 rowKey="id"
                 locale={{ emptyText: 'No questions found' }}
             />
         </div>
     );
-}; 
+};
 
 export default QuestionSearch;
